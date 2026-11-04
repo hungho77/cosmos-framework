@@ -41,6 +41,9 @@ EMBODIMENT_TO_DOMAIN_ID: dict[str, int] = {
     "so101-molmo-midtrain-15hz": 25,
     "so100-molmo-midtrain-15hz": 26,
     "so101-bimanual-midtrain-conditional": 27,
+    # SO101 6D joint-position policy (5 joints + gripper). Same robot as so101-molmo-midtrain-15hz; the
+    # policy recipes start the action projections fresh, so it shares that slot.
+    "so101_joint": 25,
     # GenieSim G2A is the simulated counterpart of Embodiment C and emits the
     # same 29-D [head, right arm/gripper, left arm/gripper] contract.
     "geniesim3_g2a": 15,
@@ -90,6 +93,7 @@ EMBODIMENT_TO_RAW_ACTION_DIM: dict[str, int] = {
     "so101-molmo-midtrain-15hz": 10,
     "so100-molmo-midtrain-15hz": 10,
     "so101-bimanual-midtrain-conditional": 20,
+    "so101_joint": 6,
     "geniesim3_g2a": 29,
     "geniesim3_g2a_joint": 16,
     "embodiment_b_20260828": 50,
