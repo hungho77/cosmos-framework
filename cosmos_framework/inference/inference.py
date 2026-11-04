@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any, Literal, Sequence, TypeVar, cast, overrid
 import attrs
 import cattrs
 import cattrs.preconf.json
+import omegaconf
 import safetensors.torch
 import torch
 from PIL import Image
@@ -1839,13 +1840,16 @@ class OmniInference(Inference):
         # Runtime-only policy: preserve immutable published checkpoint files and the shared
         # argument-builder signature. CLI, Ray and Python callers all use pipe.model_config.
         checkpoint_hf = setup_args.checkpoint_hf
-        setattr(
-            model.config,
-            "_auto_camera_fps",
-            auto_camera_fps(
-                exported_metadata, repository=checkpoint_hf.repository if checkpoint_hf is not None else None
-            ),
+        camera_fps = auto_camera_fps(
+            exported_metadata, repository=checkpoint_hf.repository if checkpoint_hf is not None else None
         )
+        # A DCP checkpoint loaded through an experiment keeps the structured (struct-mode) model config, which
+        # rejects new keys.
+        if isinstance(model.config, omegaconf.DictConfig):
+            with omegaconf.open_dict(model.config):
+                model.config._auto_camera_fps = camera_fps
+        else:
+            setattr(model.config, "_auto_camera_fps", camera_fps)
         pipe = cls(setup_args=setup_args, model=model, vae_decode_stream=vae_decode_stream, **kwargs)
         pipe.per_view_captions = exported_per_view_captions
         pipe.per_view_caption_task = exported_per_view_caption_task
