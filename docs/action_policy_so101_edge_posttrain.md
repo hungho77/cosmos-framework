@@ -45,8 +45,8 @@ export SO101_ROOT=<dir>
 bash examples/launch_sft_action_policy_so101_edge.sh
 ```
 
-On one H100 80GB this uses about 50 GB and runs at about 6.5 s per optimizer step (128 samples), so the 6000 steps
-take about 11 h. With 8 CPU cores the AV1 video decoding of the dataloader is the bottleneck.
+On one H100 80GB this uses about 50 GB and runs at about 6 s per optimizer step (128 samples), so the 6000 steps
+take about 10 h. With 8 CPU cores the AV1 video decoding of the dataloader is the bottleneck.
 
 ## Evaluate
 
@@ -58,3 +58,34 @@ PYTHONPATH=. python -m cosmos_framework.scripts.eval_action_policy_so101_open_lo
 
 The script walks each trajectory in 16-frame strides for up to 400 frames, queries the policy on the recorded frame
 and state, and reports the MAE of the first 16 actions in the dataset's units. It loads the DCP checkpoint directly.
+
+## Results
+
+`hungho77/so101-left-arm-task3` (3 tasks, 159 episodes), trajectories 0 25 51 80 108 133, MAE in the dataset's units
+and as a percentage of the absolute action std (29.97). The other rows are the same protocol on the same data.
+
+| model                          | MAE   | % std |
+| ------------------------------ | ----- | ----- |
+| GR00T N1.7                     | 1.440 | 4.80  |
+| pi0.5                          | 1.459 | 4.87  |
+| this recipe, step 6000         | 1.911 | 6.38  |
+| this recipe, step 4000         | 2.444 | 8.15  |
+
+Step 6000 is better than step 4000 on every trajectory and the loss is still falling at the end, so the run is
+probably undertrained. The error is largest on the elbow and wrist-flex joints and grows along the chunk (0.95 at the
+first action, 2.89 at the 16th).
+
+The sampling settings change little at step 6000 (default: 30 steps, guidance 1, shift 5, seed 0):
+
+| setting      | MAE   | % std |
+| ------------ | ----- | ----- |
+| default      | 1.911 | 6.38  |
+| seed 1       | 1.944 | 6.49  |
+| 10 steps     | 1.908 | 6.37  |
+| 50 steps     | 1.940 | 6.47  |
+| guidance 1.5 | 1.942 | 6.48  |
+| guidance 2   | 1.959 | 6.54  |
+| shift 3      | 1.943 | 6.48  |
+| shift 10     | 1.907 | 6.36  |
+
+All of them are within the spread of two seeds, so the defaults are kept; 10 steps is as good with a third of the denoising passes.
