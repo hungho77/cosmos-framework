@@ -1,0 +1,48 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: OpenMDW-1.1
+
+# SO101 action-policy SFT run config for the `action_policy_so101_edge` experiment, on
+# one GPU: 32 samples per micro-batch x 4 accumulation steps = global batch 128.
+# Env: SO101_ROOT, BASE_CHECKPOINT_PATH, WAN_VAE_PATH, IMAGINAIRE_OUTPUT_ROOT.
+
+[job]
+task         = "vfm"
+experiment   = "action_policy_so101_edge"
+project      = "cosmos3_action_so101"
+group        = "action_sft"
+name         = "action_policy_so101_edge"
+wandb_mode   = "disabled"
+
+[model]
+precision = "bfloat16"
+max_num_tokens_after_packing = 74000
+
+[model.parallelism]
+data_parallel_shard_degree     = 1
+data_parallel_replicate_degree = 1
+
+[model.activation_checkpointing]
+mode           = "selective"
+save_ops_regex = ["fmha"]
+
+[model.tokenizer]
+vae_path = "${oc.env:WAN_VAE_PATH}"
+
+[dataloader_train]
+max_samples_per_batch = 32
+
+[optimizer]
+lr = 5.0e-05
+
+[scheduler]
+cycle_lengths = [6000]
+warm_up_steps = [500]
+
+[trainer]
+max_iter        = 6000
+logging_iter    = 10
+grad_accum_iter = 4       # global batch = max_samples 32 x 1 rank x 4 = 128
+
+[checkpoint]
+load_path = "${oc.env:BASE_CHECKPOINT_PATH}"
+save_iter = 2000

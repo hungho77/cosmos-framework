@@ -26,6 +26,7 @@ from cosmos_framework.data.generator.action.datasets.robocasa_lerobot_dataset im
     DEFAULT_ALL_ATOMIC_TASKS,
     RoboCasaLeRobotDataset,
 )
+from cosmos_framework.data.generator.action.datasets.so101_lerobot_dataset import SO101LeRobotDataset
 from cosmos_framework.data.generator.action.utils.transforms import ActionTransformPipeline
 
 
@@ -356,6 +357,64 @@ def get_action_libero_sft_dataset(
         pose_coordinate_frame=pose_coordinate_frame,
         action_normalization=action_normalization,
         action_stats_path=action_stats_path,
+    )
+    transform = ActionTransformPipeline(
+        tokenizer_config=tokenizer_config,
+        cfg_dropout_rate=cfg_dropout_rate,
+        max_action_dim=max_action_dim,
+        append_viewpoint_info=append_viewpoint_info,
+        append_duration_fps_timestamps=append_duration_fps_timestamps,
+        append_resolution_info=append_resolution_info,
+        append_idle_frames=append_idle_frames,
+        format_prompt_as_json=format_prompt_as_json,
+    )
+    sft = ActionSFTDataset(dataset, transform, resolution)
+    if iterable_shuffle:
+        return ActionIterableShuffleDataset(sft, seed=episode_shuffle_seed)
+    return sft
+
+
+def get_action_so101_sft_dataset(
+    *,
+    root: str,
+    fps: float = 30.0,
+    chunk_length: int = 16,
+    image_size: int = 256,
+    mode: str = "wam",
+    camera_mode: str = "concat_view",
+    use_state: bool = True,
+    split: str = "train",
+    val_ratio: float = 0.01,
+    seed: int = 0,
+    resolution: str | int | None = None,
+    max_action_dim: int = 64,
+    tokenizer_config: dict | None = None,
+    cfg_dropout_rate: float = 0.1,
+    append_viewpoint_info: bool = True,
+    append_duration_fps_timestamps: bool = True,
+    append_resolution_info: bool = True,
+    append_idle_frames: bool = True,
+    format_prompt_as_json: bool = False,
+    iterable_shuffle: bool = False,
+    episode_shuffle_seed: int = 42,
+) -> Dataset:
+    """Build the SO101 action-policy SFT dataset.
+
+    Feeds ``SO101LeRobotDataset`` (6D absolute joint positions plus the state row,
+    concat_view top + wrist at ``image_size`` x ``image_size`` each) through
+    ``ActionTransformPipeline``. ``root`` is a local LeRobot v3.0 dir.
+    """
+    dataset = SO101LeRobotDataset(
+        root=root,
+        fps=fps,
+        chunk_length=chunk_length,
+        mode=mode,
+        camera_mode=camera_mode,
+        image_size=image_size,
+        use_state=use_state,
+        split=split,
+        val_ratio=val_ratio,
+        seed=seed,
     )
     transform = ActionTransformPipeline(
         tokenizer_config=tokenizer_config,
